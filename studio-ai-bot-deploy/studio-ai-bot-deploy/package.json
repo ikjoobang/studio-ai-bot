@@ -1,0 +1,32 @@
+{
+  "name": "studio-ai-bot",
+  "version": "1.0.0",
+  "description": "Studio AI Bot - 일반 상담 + 전문 컨설팅 통합 챗봇",
+  "main": "backend-server-final.js",
+  "scripts": {
+    "start": "node backend-server-final.js",
+    "dev": "nodemon backend-server-final.js",
+    "test": "node backend-server-final.js"
+  },
+  "keywords": [
+    "ai",
+    "chatbot",
+    "consulting",
+    "marketing",
+    "automation"
+  ],
+  "author": "Studio AI",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "openai": "^4.20.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

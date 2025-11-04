@@ -1,0 +1,600 @@
+<!-- 
+  Studio AI Bot - 웹사이트 임베드 위젯
+  사용법: 이 코드를 당신의 웹사이트 </body> 태그 직전에 붙여넣기
+-->
+
+<!-- Studio AI Bot 위젯 -->
+<div id="studio-ai-widget"></div>
+
+<style>
+/* 챗봇 버튼 (우측 하단) */
+#chat-button {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: transform 0.3s ease;
+}
+
+#chat-button:hover {
+  transform: scale(1.1);
+}
+
+#chat-button svg {
+  width: 28px;
+  height: 28px;
+  fill: white;
+}
+
+/* 챗봇 창 */
+#chat-window {
+  display: none;
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
+  width: 380px;
+  height: 600px;
+  max-height: calc(100vh - 140px);
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  z-index: 9998;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#chat-window.active {
+  display: flex;
+}
+
+/* 헤더 */
+#chat-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#chat-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+#close-chat {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+}
+
+/* 메시지 영역 */
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f8f9fa;
+}
+
+.message {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+.message.bot {
+  justify-content: flex-start;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message-content {
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  word-wrap: break-word;
+  line-height: 1.5;
+}
+
+.message.bot .message-content {
+  background: white;
+  border: 1px solid #e9ecef;
+}
+
+.message.user .message-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+/* 입력 영역 */
+#chat-input-area {
+  padding: 16px;
+  background: white;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  gap: 8px;
+}
+
+#chat-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #e9ecef;
+  border-radius: 24px;
+  outline: none;
+  font-size: 14px;
+}
+
+#chat-input:focus {
+  border-color: #667eea;
+}
+
+#send-button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+#send-button:hover {
+  opacity: 0.9;
+}
+
+#send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 초기 메뉴 */
+.initial-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.menu-button {
+  padding: 16px;
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.3s ease;
+}
+
+.menu-button:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.menu-button .emoji {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.menu-button .title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.menu-button .desc {
+  font-size: 13px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.menu-button:hover .desc {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 사용 횟수 표시 */
+#usage-counter {
+  background: #fff3cd;
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  border-top: 1px solid #ffc107;
+}
+
+#usage-counter.warning {
+  background: #f8d7da;
+  border-top-color: #dc3545;
+}
+
+#usage-counter a {
+  color: #dc3545;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* 로딩 애니메이션 */
+.typing-indicator {
+  display: inline-flex;
+  gap: 4px;
+  padding: 12px 16px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #667eea;
+  border-radius: 50%;
+  animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  #chat-window {
+    width: calc(100vw - 32px);
+    height: calc(100vh - 140px);
+    right: 16px;
+    bottom: 90px;
+  }
+  
+  #chat-button {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+</style>
+
+<script>
+// 설정
+const CONFIG = {
+  API_URL: 'http://localhost:3000/api', // 배포 후 실제 도메인으로 변경
+  FREE_LIMIT: 10,
+};
+
+// 상태 관리
+let chatState = {
+  isOpen: false,
+  messages: [],
+  usageCount: 0,
+  selectedMode: null,
+  isProcessing: false,
+};
+
+// 로컬 스토리지에서 사용 횟수 불러오기
+function loadUsageCount() {
+  const saved = localStorage.getItem('studio_ai_usage');
+  if (saved) {
+    const data = JSON.parse(saved);
+    chatState.usageCount = data.count || 0;
+  }
+}
+
+// 사용 횟수 저장
+function saveUsageCount() {
+  localStorage.setItem('studio_ai_usage', JSON.stringify({
+    count: chatState.usageCount,
+    lastUsed: new Date().toISOString()
+  }));
+}
+
+// 위젯 HTML 생성
+function createWidget() {
+  const widget = document.getElementById('studio-ai-widget');
+  
+  widget.innerHTML = `
+    <!-- 챗봇 버튼 -->
+    <div id="chat-button">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+      </svg>
+    </div>
+
+    <!-- 챗봇 창 -->
+    <div id="chat-window">
+      <!-- 헤더 -->
+      <div id="chat-header">
+        <h3>🤖 Studio AI Bot</h3>
+        <button id="close-chat">×</button>
+      </div>
+
+      <!-- 메시지 영역 -->
+      <div id="chat-messages"></div>
+
+      <!-- 사용 횟수 -->
+      <div id="usage-counter">
+        무료 체험: ${CONFIG.FREE_LIMIT - chatState.usageCount}회 남음
+      </div>
+
+      <!-- 입력 영역 -->
+      <div id="chat-input-area">
+        <input type="text" id="chat-input" placeholder="메시지를 입력하세요..." />
+        <button id="send-button">전송</button>
+      </div>
+    </div>
+  `;
+
+  // 이벤트 리스너
+  document.getElementById('chat-button').addEventListener('click', toggleChat);
+  document.getElementById('close-chat').addEventListener('click', toggleChat);
+  document.getElementById('send-button').addEventListener('click', sendMessage);
+  document.getElementById('chat-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !chatState.isProcessing) sendMessage();
+  });
+}
+
+// 챗봇 열기/닫기
+function toggleChat() {
+  chatState.isOpen = !chatState.isOpen;
+  const chatWindow = document.getElementById('chat-window');
+  
+  if (chatState.isOpen) {
+    chatWindow.classList.add('active');
+    if (chatState.messages.length === 0) {
+      showInitialMenu();
+    }
+  } else {
+    chatWindow.classList.remove('active');
+  }
+}
+
+// 초기 메뉴 표시
+function showInitialMenu() {
+  const messagesDiv = document.getElementById('chat-messages');
+  messagesDiv.innerHTML = `
+    <div class="message bot">
+      <div class="message-content">
+        <strong>안녕하세요! 👋</strong><br><br>
+        무엇을 도와드릴까요?
+        
+        <div class="initial-menu">
+          <div class="menu-button" onclick="selectMode('inquiry')">
+            <div class="emoji">💼</div>
+            <div class="title">일반 상담</div>
+            <div class="desc">서비스 문의, 견적 요청, 포트폴리오 안내</div>
+          </div>
+          
+          <div class="menu-button" onclick="selectMode('consulting')">
+            <div class="emoji">🎯</div>
+            <div class="title">전문 컨설팅</div>
+            <div class="desc">AI 마케팅, 영상 전략, 비즈니스 성장 조언</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 모드 선택
+window.selectMode = function(mode) {
+  chatState.selectedMode = mode;
+  
+  const modeText = mode === 'inquiry' 
+    ? '일반 상담' 
+    : '전문 컨설팅';
+  
+  addMessage(`${modeText}을 선택하셨습니다.`, 'user');
+  
+  if (mode === 'inquiry') {
+    addMessage(`
+      감사합니다! 😊<br><br>
+      
+      <strong>제공 서비스:</strong><br>
+      • AI 영상 제작 (B2B, LinkedIn, YouTube)<br>
+      • AI 마케팅 자동화 (30개 봇 플랫폼)<br>
+      • 블로그 → 영상 → 컨설팅 파이프라인<br><br>
+      
+      어떤 서비스가 궁금하신가요?<br>
+      편하게 질문해주세요!
+    `, 'bot');
+  } else {
+    addMessage(`
+      전문 컨설팅 모드입니다! 🎯<br><br>
+      
+      <strong>전문 분야:</strong><br>
+      • AI 마케팅 전략<br>
+      • 영상 콘텐츠 전략<br>
+      • 비즈니스 성장 컨설팅<br>
+      • 자동화 시스템 구축<br><br>
+      
+      어떤 고민이 있으신가요?<br>
+      깊이 있는 조언을 드리겠습니다.
+    `, 'bot');
+  }
+}
+
+// 메시지 추가
+function addMessage(text, sender) {
+  const messagesDiv = document.getElementById('chat-messages');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `message ${sender}`;
+  messageDiv.innerHTML = `
+    <div class="message-content">${text}</div>
+  `;
+  messagesDiv.appendChild(messageDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  
+  chatState.messages.push({ text, sender });
+}
+
+// 로딩 표시
+function showLoading() {
+  const messagesDiv = document.getElementById('chat-messages');
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'message bot';
+  loadingDiv.id = 'loading-message';
+  loadingDiv.innerHTML = `
+    <div class="message-content">
+      <div class="typing-indicator">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  `;
+  messagesDiv.appendChild(loadingDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// 로딩 제거
+function hideLoading() {
+  const loading = document.getElementById('loading-message');
+  if (loading) loading.remove();
+}
+
+// 메시지 전송
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const sendButton = document.getElementById('send-button');
+  const message = input.value.trim();
+  
+  if (!message || chatState.isProcessing) return;
+  
+  // 모드 선택 확인
+  if (!chatState.selectedMode) {
+    addMessage('먼저 상담 종류를 선택해주세요! 😊', 'bot');
+    return;
+  }
+  
+  // 무료 횟수 확인
+  if (chatState.usageCount >= CONFIG.FREE_LIMIT) {
+    showUpgradeMessage();
+    return;
+  }
+  
+  // 처리 시작
+  chatState.isProcessing = true;
+  sendButton.disabled = true;
+  
+  // 사용자 메시지 표시
+  addMessage(message, 'user');
+  input.value = '';
+  
+  // 로딩 표시
+  showLoading();
+  
+  try {
+    // API 호출
+    const response = await fetch(`${CONFIG.API_URL}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: message,
+        mode: chatState.selectedMode,
+        history: chatState.messages.slice(-10),
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('API 응답 오류');
+    }
+    
+    const data = await response.json();
+    
+    // 로딩 제거
+    hideLoading();
+    
+    // AI 답변 표시
+    addMessage(data.reply, 'bot');
+    
+    // 일반 상담 모드일 때 전환 유도
+    if (chatState.selectedMode === 'inquiry' && chatState.messages.length > 6) {
+      setTimeout(() => {
+        addMessage(`
+          💡 <strong>더 자세한 상담을 원하시나요?</strong><br><br>
+          이메일로 맞춤 제안서를 보내드립니다!<br>
+          📧 studio.ikjoo@gmail.com<br><br>
+          또는 계속 대화하셔도 좋습니다 😊
+        `, 'bot');
+      }, 2000);
+    }
+    
+    // 사용 횟수 증가
+    chatState.usageCount++;
+    saveUsageCount();
+    updateUsageCounter();
+    
+  } catch (error) {
+    console.error('Error:', error);
+    hideLoading();
+    addMessage('죄송합니다. 일시적인 오류가 발생했습니다.<br>잠시 후 다시 시도해주세요.', 'bot');
+  } finally {
+    chatState.isProcessing = false;
+    sendButton.disabled = false;
+  }
+}
+
+// 사용 횟수 업데이트
+function updateUsageCounter() {
+  const counter = document.getElementById('usage-counter');
+  const remaining = CONFIG.FREE_LIMIT - chatState.usageCount;
+  
+  if (remaining > 0) {
+    counter.innerHTML = `무료 체험: ${remaining}회 남음`;
+    counter.className = '';
+  } else {
+    counter.innerHTML = `무료 체험 종료 - <a href="#upgrade" onclick="showUpgradeMessage()">유료 전환하기</a>`;
+    counter.className = 'warning';
+  }
+}
+
+// 유료 전환 메시지
+function showUpgradeMessage() {
+  addMessage(`
+    🎉 <strong>무료 체험을 모두 사용하셨습니다!</strong><br><br>
+    
+    계속 사용하시려면 프리미엄으로 전환해주세요:<br><br>
+    
+    <strong>💎 프리미엄 플랜</strong><br>
+    • 월 ₩14,900 (오픈 특가!)<br>
+    • 월 100회 상담<br>
+    • 일반 상담 + 전문 컨설팅<br>
+    • 우선 응답 (24시간 내)<br>
+    • 이메일 맞춤 컨설팅<br><br>
+    
+    📧 가입 문의: studio.ikjoo@gmail.com<br>
+    <small>지금 가입하시면 <strong>영구 할인 가격</strong> 적용됩니다!</small>
+  `, 'bot');
+}
+
+// 초기화
+document.addEventListener('DOMContentLoaded', function() {
+  loadUsageCount();
+  createWidget();
+  updateUsageCounter();
+});
+</script>
